@@ -25,11 +25,12 @@ public class MainActivity extends AppCompatActivity {
     public EditText commandEditText;
     public ListView smsListView;
     private ArrayAdapter<String> adapter;
+    private ArrayList<String> smsData;
 
     private ServiceConnection serviceConnection;
     private CommandService commandService;
 
-    private ResponseReceiver responseReceiver;
+    // private ResponseReceiver responseReceiver;
     private SMSReceiver smsReceiver;
     private IntentFilter intentFilter;
 
@@ -38,8 +39,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Intent intent = getIntent();
+        if (intent.hasExtra("message")) {
+            String message = intent.getStringExtra("message");
+            String sender = intent.getStringExtra("sender");
+            String timestamp = intent.getStringExtra("timestamp");
+            updateSMSList(message, sender, timestamp);
+        }
         smsListView = findViewById(R.id.sms_list_view);
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new ArrayList<String>());
+        smsData = new ArrayList<>();
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, smsData);
         smsListView.setAdapter(adapter);
 
         sendButton = findViewById(R.id.send_button);
@@ -69,17 +78,25 @@ public class MainActivity extends AppCompatActivity {
         };
 
         intentFilter = new IntentFilter();
-        intentFilter.addAction(ResponseReceiver.ACTION_RESP);
+        // intentFilter.addAction(ResponseReceiver.ACTION_RESP);
         intentFilter.addCategory(Intent.CATEGORY_DEFAULT);
 
-        responseReceiver = new ResponseReceiver();
-        registerReceiver(responseReceiver, intentFilter);
+        //  responseReceiver = new ResponseReceiver();
+        //registerReceiver(responseReceiver, intentFilter);
+
+        smsReceiver = new SMSReceiver();
+        IntentFilter smsFilter = new IntentFilter("android.provider.Telephony.SMS_RECEIVED");
+        registerReceiver(smsReceiver, smsFilter);
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(smsReceiver, intentFilter);
+        //registerReceiver(responseReceiver, intentFilter);
+        if (smsReceiver != null) {
+            registerReceiver(smsReceiver, intentFilter);
+        }
         intentFilter.setPriority(100);
         bindService(new Intent(this, CommandService.class), serviceConnection, BIND_AUTO_CREATE);
     }
@@ -87,24 +104,21 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(smsReceiver);
+        //unregisterReceiver(responseReceiver);
+        if (smsReceiver != null) {
+            unregisterReceiver(smsReceiver);
+        }
         unbindService(serviceConnection);
     }
 
-    public static class ResponseReceiver extends BroadcastReceiver {
-        public static final String ACTION_RESP = "com.example.app.ACTION_RESP";
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String result = intent.getStringExtra("result");
-            Toast.makeText(context, result, Toast.LENGTH_SHORT).show();
-            List<String> smsData = new ArrayList<>();
-            smsData.add(result);
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(context, android.R.layout.simple_list_item_1, smsData);
-
-
-            adapter.add(result);
-            adapter.notifyDataSetChanged();
-        }
+    // add new method to update UI with new incoming SMS
+    public void updateSMSList(String message, String sender, String timestamp) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                smsData.add("Message: " + message + "\n" + "Sender: " + sender + "\n" + "Timestamp: " + timestamp);
+                adapter.notifyDataSetChanged();
+            }
+        });
     }
 }

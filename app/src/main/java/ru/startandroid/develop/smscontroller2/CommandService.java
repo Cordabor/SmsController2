@@ -102,7 +102,7 @@ public class CommandService extends Service {
 
         private void sendResult(String result) {
             Intent broadcastIntent = new Intent();
-            broadcastIntent.setAction(MainActivity.ResponseReceiver.ACTION_RESP);
+           // broadcastIntent.setAction(MainActivity.ResponseReceiver.ACTION_RESP);
             broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
             broadcastIntent.putExtra("result", result);
             sendBroadcast(broadcastIntent);

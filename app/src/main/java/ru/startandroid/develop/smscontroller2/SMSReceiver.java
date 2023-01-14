@@ -9,46 +9,49 @@ import android.telephony.SmsMessage;
 import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 
 public class SMSReceiver extends BroadcastReceiver {
-    ArrayList<String> smsMessages = new ArrayList<>();
-    ArrayAdapter<String> adapter;
-    ListView smsListView;
 
-    @Override
+    public static final String SMS_BUNDLE = "pdus";
+
     public void onReceive(Context context, Intent intent) {
-        // Получить данные из intent
-        Bundle bundle = intent.getExtras();
-        SmsMessage[] messages;
-        String str = "";
+        Log.d("SMSReceiver", "onReceive method called");
+        Bundle bundle= intent.getExtras();
         if (bundle != null) {
-            // Получить pdus из bundle
+            Log.d("SMSReceiver", "bundle is not null");
+// Получить объект PDU (Protocol Data Unit)
             Object[] pdus = (Object[]) bundle.get("pdus");
-            messages = new SmsMessage[pdus.length];
-            // Заполнить массив SmsMessage
+            SmsMessage[] messages = new SmsMessage[pdus.length];
             for (int i = 0; i < messages.length; i++) {
+// Создать SmsMessage из PDU
                 messages[i] = SmsMessage.createFromPdu((byte[]) pdus[i]);
-                str += messages[i].getMessageBody();
-                smsMessages.add(str);
+// Получить текст сообщения
+                String message = messages[i].getMessageBody();
+                Log.d("SMSReceiver", "New SMS Received: " + message);
+// Получить номер отправителя
+                String sender = messages[i].getOriginatingAddress();
+                Log.d("SMSReceiver", "Sender: " + sender);
+// Получить текущую дату и время
+                String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                        Locale.getDefault()).format(new Date());
+                Log.d("SMSReceiver", "Timestamp: " + timestamp);
+// Обновить UI
+                updateUI(context, message, sender, timestamp);
             }
-            updateUI(context);
         }
     }
-
-    private void updateUI(final Context context){
-        ((Activity) context).runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                smsListView = (ListView) ((Activity) context).findViewById(R.id.sms_list_view);
-                adapter = new ArrayAdapter<>(context, android.R.layout.simple_list_item_1, smsMessages);
-                smsListView.setAdapter(adapter);
-
-                adapter.notifyDataSetChanged();
-            }
-        });
-
+    private void updateUI(final Context context, String message, String sender, String timestamp){
+        Intent intent = new Intent(context, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.putExtra("message", message);
+        intent.putExtra("sender", sender);
+        intent.putExtra("timestamp", timestamp);
+        context.startActivity(intent);
     }
-
 }
