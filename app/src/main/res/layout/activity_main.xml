@@ -11,11 +11,6 @@
         android:orientation="horizontal"
         android:gravity="center">
 
-        <Button
-            android:id="@+id/send_button"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:text="Send" />
     </LinearLayout>
 
     <ListView
@@ -23,10 +18,5 @@
         android:layout_width="381dp"
         android:layout_height="502dp" />
 
-    <EditText
-        android:id="@+id/command_edit_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Enter command here..." />
 
 </LinearLayout>

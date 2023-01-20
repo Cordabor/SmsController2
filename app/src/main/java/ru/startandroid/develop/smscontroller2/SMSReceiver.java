@@ -36,6 +36,9 @@ public class SMSReceiver extends BroadcastReceiver {
                         Locale.getDefault()).format(new Date());
 
                 EventBus.getDefault().post(new SMSEvent(message, sender, timestamp));
+                Intent serviceIntent = new Intent(context, CommandService.class);
+                serviceIntent.putExtra("command", message);
+                context.startService(serviceIntent);
             }
         }
     }
