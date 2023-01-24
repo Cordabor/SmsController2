@@ -25,6 +25,11 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 public class MainActivity extends AppCompatActivity implements CommandCallback {
@@ -34,6 +39,11 @@ public class MainActivity extends AppCompatActivity implements CommandCallback {
     public ArrayList<String> smsList = new ArrayList<>();
     private ListView smsListView;
     private int selectedPosition = -1;
+
+
+   public ArrayList<String> commandList;
+    public ArrayAdapter<String> commandListAdapter;
+    private ListView command_list_view;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +57,15 @@ public class MainActivity extends AppCompatActivity implements CommandCallback {
         CommandService.setMainActivity(this);
         CommandService commandService = new CommandService();
         commandService.setCommandCallback(this);
+
+        commandList = new ArrayList<>();
+        commandListAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, commandList);
+        command_list_view = findViewById(R.id.command_list_view);
+        command_list_view.setAdapter(commandListAdapter);
+
+        TCPServer server = new TCPServer(this, commandList, commandListAdapter);
+        server.startListening();
+
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -117,5 +136,15 @@ public class MainActivity extends AppCompatActivity implements CommandCallback {
             Toast.makeText(MainActivity.this, "Failed to send command", Toast.LENGTH_SHORT).show();
         }
     }
+
+
+
+    public void updateUI(String message) {
+        MainActivity.this.runOnUiThread(() -> {
+            commandList.add(message);
+            commandListAdapter.notifyDataSetChanged();
+        });
+    }
+
 
 }
