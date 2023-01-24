@@ -69,6 +69,8 @@ public class CommandService extends Service{
             String command = mainActivity.smsList.get(selectedPosition);
             ConnectTask connectTask = new ConnectTask();
             connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, command);
+            //Notify TCPServer that command has been sent
+            mainActivity.server.startListening();
         }
         return START_STICKY;
     }

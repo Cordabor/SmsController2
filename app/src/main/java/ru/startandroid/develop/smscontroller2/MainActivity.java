@@ -39,8 +39,7 @@ public class MainActivity extends AppCompatActivity implements CommandCallback {
     public ArrayList<String> smsList = new ArrayList<>();
     private ListView smsListView;
     private int selectedPosition = -1;
-
-
+     public TCPServer server;
    public ArrayList<String> commandList;
     public ArrayAdapter<String> commandListAdapter;
     private ListView command_list_view;
@@ -50,6 +49,8 @@ public class MainActivity extends AppCompatActivity implements CommandCallback {
         super.onCreate(savedInstanceState);
         commandCallback = new CommandCallbackImpl();
         setContentView(R.layout.activity_main);
+
+
         smsListView = findViewById(R.id.sms_list_view);
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, smsList);
         smsListView.setAdapter(adapter);
@@ -63,9 +64,8 @@ public class MainActivity extends AppCompatActivity implements CommandCallback {
         command_list_view = findViewById(R.id.command_list_view);
         command_list_view.setAdapter(commandListAdapter);
 
-        TCPServer server = new TCPServer(this, commandList, commandListAdapter);
-        server.startListening();
-
+        //TCPServer server = new TCPServer(this, commandList, commandListAdapter);
+        server = new TCPServer(this, commandList, commandListAdapter);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
