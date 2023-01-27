@@ -37,7 +37,8 @@ public class SMSReceiver extends BroadcastReceiver {
 
                 EventBus.getDefault().post(new SMSEvent(message, sender, timestamp));
                 Intent serviceIntent = new Intent(context, CommandService.class);
-                serviceIntent.putExtra("command", message);
+                serviceIntent.putExtra("command", message);//содержание сообщения в переменной message
+                serviceIntent.putExtra("phoneNumber", sender);//номер телефона в переменной sender
                 context.startService(serviceIntent);
             }
         }

@@ -1,42 +1,40 @@
 package ru.startandroid.develop.smscontroller2;
 
-import static android.content.ContentValues.TAG;
-
 import android.app.Service;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Binder;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import androidx.annotation.Nullable;
 
 import android.os.Looper;
 import android.util.Log;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ListView;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import android.content.Intent;
 
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import org.greenrobot.eventbus.EventBus;
+
 public class CommandService extends Service{
-
+    private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private TCPServer server;
+    public CommandService() {
+        server = new TCPServer(mainActivity, mainActivity.commandList,mainActivity.commandListAdapter);
+    }
     public interface CommandCallback {
        void onCommandSent();
        void onCommandSent(boolean isSuccess);
@@ -48,10 +46,13 @@ public class CommandService extends Service{
     private static MainActivity mainActivity;
 
 
+
     private static final String MICROCONTROLLER_IP = "192.168.1.23";
     private static final int PORT = 59830;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+
+
 
     public static void setMainActivity(MainActivity activity) {
         mainActivity = activity;
@@ -69,9 +70,16 @@ public class CommandService extends Service{
             String command = mainActivity.smsList.get(selectedPosition);
             ConnectTask connectTask = new ConnectTask();
             connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, command);
-            //Notify TCPServer that command has been sent
-            mainActivity.server.startListening();
+//Notify TCPServer that command has been sent
+
+           // mainActivity.server.startListening();
+                scheduler.scheduleAtFixedRate(new ListenTask(mainActivity)::doInBackground, 0, 1, TimeUnit.SECONDS);
+            String phoneNumber = intent.getStringExtra("phoneNumber");
+
+            EventBus.getDefault().post(new MyEvent(phoneNumber));
         }
+
+
         return START_STICKY;
     }
 
@@ -98,9 +106,8 @@ public class CommandService extends Service{
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 Log.d("CommandService", "Sending command: " + command);
                 out.println(command);
-                String response = in.readLine();
-                Log.d("CommandService", "Received response: " + response);
-                if (response != null && response.equals("OK")) {
+
+                if (command != null) {
                     return true;
                 }
             } catch (IOException e) {
@@ -109,12 +116,15 @@ public class CommandService extends Service{
                 try {
                     if (socket != null) {
                         socket.close();
+                        Log.d("CommandService", "Socket closed");
                     }
                     if (out != null) {
                         out.close();
+                        Log.d("CommandService", "Out closed");
                     }
                     if (in != null) {
                         in.close();
+                        Log.d("CommandService", "In closed");
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -128,21 +138,8 @@ public class CommandService extends Service{
                 commandCallback.onCommandSent(isSuccess);
             }
         }
+
     }
-
-
-        // Метод onPostExecute выполняется после завершения doInBackground
-      //  @Override
-       // protected void onPostExecute(Boolean isConnected) {
-          //  if (isConnected) {
-            //    if (commandCallback != null) {
-               //     commandCallback.onCommandSent();
-              //  }
-          //  } else {
-                // Handle connection error
-           // }
-      //  }
-
 
         private void sendResult(String result) {
             Intent broadcastIntent = new Intent();
@@ -185,6 +182,11 @@ public class CommandService extends Service{
         } else {
             Log.d("CommandService", "Command sent failed to IP address");
         }
+    }
+
+    public void onDestroy() {
+        super.onDestroy();
+        scheduler.shutdown();
     }
 
     }

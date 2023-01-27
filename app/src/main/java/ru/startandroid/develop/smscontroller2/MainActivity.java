@@ -1,13 +1,16 @@
 package ru.startandroid.develop.smscontroller2;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -18,6 +21,8 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import ru.startandroid.develop.smscontroller2.CommandService.CommandCallback;
@@ -34,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 public class MainActivity extends AppCompatActivity implements CommandCallback {
 
+    private static final int SMS_PERMISSION_CODE = 0;
     private CommandCallback commandCallback;
     private ArrayAdapter<String> adapter;
     public ArrayList<String> smsList = new ArrayList<>();
@@ -43,7 +49,7 @@ public class MainActivity extends AppCompatActivity implements CommandCallback {
    public ArrayList<String> commandList;
     public ArrayAdapter<String> commandListAdapter;
     private ListView command_list_view;
-
+    private String phoneNumber;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,8 +70,10 @@ public class MainActivity extends AppCompatActivity implements CommandCallback {
         command_list_view = findViewById(R.id.command_list_view);
         command_list_view.setAdapter(commandListAdapter);
 
-        //TCPServer server = new TCPServer(this, commandList, commandListAdapter);
+
         server = new TCPServer(this, commandList, commandListAdapter);
+
+        phoneNumber = getIntent().getStringExtra("phoneNumber");
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -108,23 +116,12 @@ public class MainActivity extends AppCompatActivity implements CommandCallback {
             }
         }
     }
- //   @Subscribe(threadMode = ThreadMode.MAIN)
-  //  public void onSMSEvent(SMSEvent event) {
-       // String sms = event.getSender() + ": " + event.getMessage() + " [" + event.getTimestamp() + "]";
-       // smsList.add(sms);
-       // adapter.notifyDataSetChanged();
-       // sendCommand(sms);
- //   }
 
-  //  public void sendCommand(String sms) {
-     //   Intent intent = new Intent(this, CommandService.class);
-     //   intent.putExtra("sms", sms);
-     //   startService(intent);
-  //  }
     @Override
     public void onCommandSent() {
 
     }
+
 
     @Override
     public void onCommandSent(boolean isSuccess) {
@@ -136,15 +133,24 @@ public class MainActivity extends AppCompatActivity implements CommandCallback {
             Toast.makeText(MainActivity.this, "Failed to send command", Toast.LENGTH_SHORT).show();
         }
     }
-
-
-
     public void updateUI(String message) {
         MainActivity.this.runOnUiThread(() -> {
             commandList.add(message);
-            commandListAdapter.notifyDataSetChanged();
+            commandListAdapter.notifyDataSetChanged();//обновляю список с ответными сообщениями от микроконтроллера
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, SMS_PERMISSION_CODE);
+            } else {
+                // Permission already granted
+                sendSMS(phoneNumber, message);//отправляю ответное СМС
+            }
+
         });
     }
+    private void sendSMS(String phoneNumber, String message) {
+        SmsManager smsManager = SmsManager.getDefault();
+        smsManager.sendTextMessage(phoneNumber, null, message, null, null);
+        }
+    }
 
-
-}
